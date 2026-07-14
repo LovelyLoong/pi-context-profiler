@@ -67,6 +67,8 @@ test("registers observers only and writes content-free correlated NDJSON", () =>
         "before_provider_request",
         "context",
         "message_end",
+        "session_before_compact",
+        "session_compact",
         "session_start",
         "tool_result",
       ],
@@ -100,6 +102,37 @@ test("registers observers only and writes content-free correlated NDJSON", () =>
     api.emit("after_provider_response", {
       status: 200,
       headers: { authorization: secret, "content-type": "application/json" },
+    }, ctx);
+    api.emit("session_before_compact", {
+      reason: "threshold",
+      willRetry: false,
+      branchEntries: [{ content: secret }],
+      customInstructions: secret,
+      preparation: {
+        firstKeptEntryId: secret,
+        messagesToSummarize: [{ role: "user", content: secret }],
+        turnPrefixMessages: [],
+        isSplitTurn: false,
+        tokensBefore: 180_000,
+        previousSummary: secret,
+        fileOps: { readFiles: [ctx.cwd], modifiedFiles: [] },
+        settings: { enabled: true, reserveTokens: 16_384, keepRecentTokens: 20_000 },
+      },
+    }, ctx);
+    api.emit("session_compact", {
+      reason: "threshold",
+      willRetry: false,
+      fromExtension: false,
+      compactionEntry: {
+        type: "compaction",
+        id: "entry-1",
+        parentId: null,
+        timestamp: "2026-07-14T00:00:00.000Z",
+        summary: secret,
+        firstKeptEntryId: secret,
+        tokensBefore: 180_000,
+        details: { readFiles: [ctx.cwd] },
+      },
     }, ctx);
     api.emit("message_end", {
       message: {
@@ -144,14 +177,19 @@ test("registers observers only and writes content-free correlated NDJSON", () =>
         "provider_request",
         "tool_result",
         "provider_response",
+        "compaction_start",
+        "compaction",
         "assistant_usage",
       ],
     );
     assert.equal(records[2].requestIndex, 1);
     assert.equal(records[3].requestIndex, 1);
-    assert.equal(records[6].requestIndex, 1);
-    assert.equal(records[6].usage.activeInputTokens, 182_411);
+    assert.equal(records[8].requestIndex, 1);
+    assert.equal(records[8].usage.activeInputTokens, 182_411);
     assert.equal(records[5].headerCount, 2);
+    assert.equal(records[6].tokensBefore, 180_000);
+    assert.equal(records[7].reason, "threshold");
+    assert.equal(records[7].summary.utf8Bytes > 0, true);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -161,7 +199,7 @@ test("the package entrypoint loads and registers observers only", () => {
   const api = new FakeExtensionApi();
   contextProfilerExtension(api as unknown as ExtensionAPI);
 
-  assert.equal(api.handlers.size, 7);
+  assert.equal(api.handlers.size, 9);
   assert.equal(api.handlers.has("before_provider_request"), true);
   assert.equal(api.handlers.has("tool_result"), true);
 });

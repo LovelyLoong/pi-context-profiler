@@ -5,7 +5,7 @@ import type {
   ExtensionAPI,
   ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import { hashIdentifier, measureText } from "./metrics.ts";
+import { hashIdentifier, measureText, measureValue } from "./metrics.ts";
 import {
   profileAgentStart,
   profileAssistantUsage,
@@ -15,7 +15,7 @@ import {
 } from "./profile.ts";
 
 const SCHEMA_VERSION = 1;
-const PACKAGE_VERSION = "0.1.0";
+const PACKAGE_VERSION = "0.2.0";
 
 type ProfilerRecord = Record<string, unknown>;
 type AppendRecord = (filePath: string, record: ProfilerRecord) => void;
@@ -145,6 +145,33 @@ export class ContextProfilerRuntime {
         requestIndex: this.state(ctx).lastRequestIndex,
         status: event.status,
         headerCount: Object.keys(event.headers).length,
+      });
+    });
+    this.pi.on("session_before_compact", (event, ctx) => {
+      this.write(ctx, "compaction_start", {
+        reason: event.reason,
+        willRetry: event.willRetry,
+        tokensBefore: event.preparation.tokensBefore,
+        branchEntryCount: event.branchEntries.length,
+        messagesToSummarize: measureValue(event.preparation.messagesToSummarize),
+        turnPrefixMessages: measureValue(event.preparation.turnPrefixMessages),
+        previousSummary: event.preparation.previousSummary === undefined
+          ? undefined
+          : measureText(event.preparation.previousSummary),
+        customInstructions: event.customInstructions === undefined
+          ? undefined
+          : measureText(event.customInstructions),
+      });
+    });
+    this.pi.on("session_compact", (event, ctx) => {
+      this.write(ctx, "compaction", {
+        reason: event.reason,
+        willRetry: event.willRetry,
+        fromExtension: event.fromExtension,
+        tokensBefore: event.compactionEntry.tokensBefore,
+        firstKeptEntryIdHash: hashIdentifier(event.compactionEntry.firstKeptEntryId),
+        summary: measureText(event.compactionEntry.summary),
+        details: measureValue(event.compactionEntry.details),
       });
     });
     this.pi.on("tool_result", (event, ctx) => {

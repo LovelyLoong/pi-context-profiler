@@ -23,6 +23,7 @@ Each session log can contain:
 - `provider_request`: the actual provider payload structure and component sizes;
 - `tool_result`: content/details sizes before the result enters later context;
 - `assistant_usage`: exact provider usage and Pi context-window usage;
+- `compaction_start` / `compaction`: trigger, retry state, exact pre-compaction tokens, and content-free summary/message metrics;
 - lifecycle correlation records.
 
 The comparison between `tool_result`, `context_snapshot`, and `provider_request` reveals whether output was retained, transformed, or projected before reaching the model.
@@ -57,11 +58,26 @@ The extension registers event observers only. It adds no LLM tool, slash command
 
 ## Summary
 
+Inspect one session while preserving the original detailed report:
+
 ```sh
 npm run summarize -- C:/Users/SkyUser/.pi/agent/context-profiler/<session-id>.ndjson
 ```
 
-The summary contains metadata only and highlights the largest retained messages and tool results.
+Build a cross-session baseline from sessions that started in an inclusive time range:
+
+```sh
+npm run summarize -- \
+  --dir C:/Users/SkyUser/.pi/agent/context-profiler \
+  --since 2026-07-14T00:00:00Z \
+  --until 2026-07-17T23:59:59Z \
+  --min-requests 1 \
+  --top 20
+```
+
+The batch report includes P50/P90/final/peak active-input usage, cumulative provider usage, cache-read share, compaction counts, context-growth points, and tool-result attribution by tool name. Provider usage is exact; component attribution remains the documented byte-based rough estimate. The reader streams complete NDJSON records and safely skips only an incomplete trailing record from a concurrently active session.
+
+Both report modes contain metadata only. They output log basenames and session IDs, never complete log paths or source text.
 
 ## Verification
 

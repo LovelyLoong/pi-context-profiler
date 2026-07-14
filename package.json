@@ -1,6 +1,6 @@
 {
   "name": "pi-context-profiler",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Passive, content-free context attribution for Pi provider requests",
   "type": "module",
