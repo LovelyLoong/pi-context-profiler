@@ -7,7 +7,7 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import contextProfilerExtension from "../extensions/index.ts";
 import { ContextProfilerRuntime } from "../src/runtime.ts";
 
-type Handler = (event: any, context: ExtensionContext) => unknown;
+type Handler = (event: unknown, context: ExtensionContext) => unknown;
 
 class FakeExtensionApi {
   readonly handlers = new Map<string, Handler[]>();
@@ -60,7 +60,7 @@ test("registers observers only and writes content-free correlated NDJSON", () =>
     runtime.register();
 
     assert.deepEqual(
-      [...api.handlers.keys()].sort(),
+      [...api.handlers.keys()].sort((left, right) => left.localeCompare(right)),
       [
         "after_provider_response",
         "before_agent_start",
