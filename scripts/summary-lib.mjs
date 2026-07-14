@@ -643,7 +643,13 @@ export async function summarizeDirectory(directory, options = {}) {
       excludedByRequestCount += 1;
       continue;
     }
-    if (packageVersion && !summary.packageVersions.includes(packageVersion)) {
+    if (
+      packageVersion
+      && (
+        summary.packageVersions.length !== 1
+        || summary.packageVersions[0] !== packageVersion
+      )
+    ) {
       excludedByPackageVersion += 1;
       continue;
     }

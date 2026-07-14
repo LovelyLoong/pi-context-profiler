@@ -76,7 +76,7 @@ npm run summarize -- \
   --top 20
 ```
 
-The batch report includes profiler/model/provider version distributions, P50/P90/final/peak active-input usage, cumulative provider usage, cache-read share, compaction counts, context-growth points, and tool-result attribution by tool name. Provider usage is exact; component attribution remains the documented byte-based rough estimate. The reader streams complete NDJSON records and safely skips only an incomplete trailing record from a concurrently active session.
+A package-version filter includes only sessions whose records all use that exact profiler version, excluding sessions that crossed an extension reload boundary. The batch report includes profiler/model/provider version distributions, P50/P90/final/peak active-input usage, cumulative provider usage, cache-read share, compaction counts, context-growth points, and tool-result attribution by tool name. Provider usage is exact; component attribution remains the documented byte-based rough estimate. The reader streams complete NDJSON records and safely skips only an incomplete trailing record from a concurrently active session.
 
 Both report modes contain metadata only. They output log basenames and session IDs, never complete log paths or source text.
 

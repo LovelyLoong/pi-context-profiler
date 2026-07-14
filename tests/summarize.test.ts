@@ -125,7 +125,9 @@ test("batch summary reports exact usage distributions and rough tool attribution
     ], true);
 
     writeLog(root, "session-b", [
-      record("session-b", "2026-07-15T00:00:00.000Z", "session_start"),
+      record("session-b", "2026-07-15T00:00:00.000Z", "session_start", {
+        packageVersion: "0.2.0",
+      }),
       record("session-b", "2026-07-15T00:00:01.000Z", "context_snapshot", {
         requestIndex: 1,
         profile: { metric: { serializedBytes: 2_000, roughTokenEstimate: 500 }, items: [] },
@@ -203,7 +205,10 @@ test("batch summary reports exact usage distributions and rough tool attribution
       max: 300,
       mean: 250,
     });
-    assert.deepEqual(summary.aggregate.packageVersions, { "0.1.0": 2 });
+    assert.deepEqual(summary.aggregate.packageVersions, {
+      "0.1.0": 2,
+      "0.2.0": 1,
+    });
     assert.equal(summary.aggregate.exactUsage.cumulative.input, 60);
     assert.equal(summary.aggregate.exactUsage.cumulative.cacheRead, 540);
     assert.equal(summary.aggregate.toolErrors, 1);
