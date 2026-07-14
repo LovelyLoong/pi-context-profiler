@@ -88,4 +88,4 @@ npm run check
 npm audit
 ```
 
-For strict A/B work, first run a profiler-only baseline. Enable result projection only in a separate run with the same model, reasoning level, prompt, cwd, filesystem snapshot, and healthy session index.
+For strict A/B work, follow the [A/B protocol](https://github.com/LovelyLoong/pi-context-profiler/blob/main/docs/ab-protocol.md): first collect a profiler-only, single-version baseline, then enable exactly one result-projection intervention while holding model, reasoning level, prompt, cwd, filesystem/memory snapshots, and session-index state fixed.
