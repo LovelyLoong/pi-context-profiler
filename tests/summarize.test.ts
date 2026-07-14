@@ -188,10 +188,12 @@ test("batch summary reports exact usage distributions and rough tool attribution
       since: "2026-07-14T00:00:00.000Z",
       until: "2026-07-15T23:59:59.999Z",
       minimumProviderRequests: 1,
+      packageVersion: null,
       discoveredSessionLogs: 4,
       includedSessions: 2,
       excludedByTime: 1,
       excludedByRequestCount: 1,
+      excludedByPackageVersion: 0,
     });
     assert.deepEqual(summary.aggregate.exactUsage.finalActiveInputTokens, {
       count: 2,
@@ -201,6 +203,7 @@ test("batch summary reports exact usage distributions and rough tool attribution
       max: 300,
       mean: 250,
     });
+    assert.deepEqual(summary.aggregate.packageVersions, { "0.1.0": 2 });
     assert.equal(summary.aggregate.exactUsage.cumulative.input, 60);
     assert.equal(summary.aggregate.exactUsage.cumulative.cacheRead, 540);
     assert.equal(summary.aggregate.toolErrors, 1);
@@ -225,6 +228,19 @@ test("batch summary reports exact usage distributions and rough tool attribution
     assert.equal(summary.sessions[0].partialTrailingRecordSkipped, true);
     assert.equal(JSON.stringify(summary).includes("fixture-secret-never-output"), false);
     assert.equal(JSON.stringify(summary).includes(root), false);
+
+    const versionFiltered = runSummary(
+      "--dir",
+      root,
+      "--since",
+      "2026-07-14T00:00:00.000Z",
+      "--until",
+      "2026-07-15T23:59:59.999Z",
+      "--package-version",
+      "0.2.0",
+    );
+    assert.equal(versionFiltered.selection.includedSessions, 0);
+    assert.equal(versionFiltered.selection.excludedByPackageVersion, 2);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

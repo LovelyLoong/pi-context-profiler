@@ -72,10 +72,11 @@ npm run summarize -- \
   --since 2026-07-14T00:00:00Z \
   --until 2026-07-17T23:59:59Z \
   --min-requests 1 \
+  --package-version 0.2.0 \
   --top 20
 ```
 
-The batch report includes P50/P90/final/peak active-input usage, cumulative provider usage, cache-read share, compaction counts, context-growth points, and tool-result attribution by tool name. Provider usage is exact; component attribution remains the documented byte-based rough estimate. The reader streams complete NDJSON records and safely skips only an incomplete trailing record from a concurrently active session.
+The batch report includes profiler/model/provider version distributions, P50/P90/final/peak active-input usage, cumulative provider usage, cache-read share, compaction counts, context-growth points, and tool-result attribution by tool name. Provider usage is exact; component attribution remains the documented byte-based rough estimate. The reader streams complete NDJSON records and safely skips only an incomplete trailing record from a concurrently active session.
 
 Both report modes contain metadata only. They output log basenames and session IDs, never complete log paths or source text.
 

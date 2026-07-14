@@ -92,6 +92,7 @@ function createAccumulator(filePath, detailed) {
     peakContextUsagePercent: undefined,
     contextWindow: undefined,
     cumulativeUsage: Object.fromEntries(USAGE_FIELDS.map((field) => [field, 0])),
+    packageVersions: new Set(),
     models: new Set(),
     providers: new Set(),
     contextSnapshot: {
@@ -311,6 +312,7 @@ function observeToolResult(state, record) {
 function consumeRecord(state, record) {
   state.recordCount += 1;
   if (!state.sessionId && typeof record.sessionId === "string") state.sessionId = record.sessionId;
+  if (typeof record.packageVersion === "string") state.packageVersions.add(record.packageVersion);
   updateTimestamps(state, record.timestamp);
   const event = typeof record.event === "string" ? record.event : "unknown";
   increment(state.eventCounts, event);
@@ -440,6 +442,7 @@ function sessionOutput(state, top) {
     toolErrors: state.toolErrorCount,
     responseStatus: state.responseStatus,
     compactionEvents: state.compactionEvents,
+    packageVersions: [...state.packageVersions].sort((left, right) => left.localeCompare(right)),
     models: [...state.models].sort((left, right) => left.localeCompare(right)),
     providers: [...state.providers].sort((left, right) => left.localeCompare(right)),
     exactUsage: {
@@ -550,6 +553,14 @@ function sumUsage(sessions) {
   };
 }
 
+function countSessionValues(sessions, selector) {
+  const counts = {};
+  for (const session of sessions) {
+    for (const value of selector(session)) increment(counts, value);
+  }
+  return counts;
+}
+
 function aggregateSessions(sessions, top) {
   const value = (selector) => sessions.map(selector).filter(Number.isFinite);
   const growth = sessions.flatMap((session) =>
@@ -569,6 +580,9 @@ function aggregateSessions(sessions, top) {
     toolResults: sessions.reduce((total, session) => total + session.toolResults, 0),
     toolErrors: sessions.reduce((total, session) => total + session.toolErrors, 0),
     compactionEvents: sessions.reduce((total, session) => total + session.compactionEvents, 0),
+    packageVersions: countSessionValues(sessions, (session) => session.packageVersions),
+    models: countSessionValues(sessions, (session) => session.models),
+    providers: countSessionValues(sessions, (session) => session.providers),
     exactUsage: {
       finalActiveInputTokens: distribution(value((session) => session.exactUsage.finalActiveInputTokens)),
       peakActiveInputTokens: distribution(value((session) => session.exactUsage.peakActiveInputTokens)),
@@ -591,6 +605,9 @@ export async function summarizeDirectory(directory, options = {}) {
   const root = resolve(directory);
   const top = options.top ?? 20;
   const minimumProviderRequests = options.minimumProviderRequests ?? 1;
+  const packageVersion = typeof options.packageVersion === "string"
+    ? options.packageVersion.trim()
+    : "";
   const since = options.since ? isoTimestamp(options.since) : undefined;
   const until = options.until ? isoTimestamp(options.until) : undefined;
   if (options.since && !since) throw new Error(`Invalid --since timestamp: ${options.since}`);
@@ -608,6 +625,7 @@ export async function summarizeDirectory(directory, options = {}) {
   const sessions = [];
   let excludedByTime = 0;
   let excludedByRequestCount = 0;
+  let excludedByPackageVersion = 0;
   for (const file of files) {
     // Preserve every tool bucket until cross-session aggregation is complete. Per-session
     // ranking is trimmed only in the returned report, otherwise a frequently-small tool
@@ -623,6 +641,10 @@ export async function summarizeDirectory(directory, options = {}) {
     }
     if (summary.providerRequests < minimumProviderRequests) {
       excludedByRequestCount += 1;
+      continue;
+    }
+    if (packageVersion && !summary.packageVersions.includes(packageVersion)) {
+      excludedByPackageVersion += 1;
       continue;
     }
     sessions.push(summary);
@@ -646,10 +668,12 @@ export async function summarizeDirectory(directory, options = {}) {
       since: since ?? null,
       until: until ?? null,
       minimumProviderRequests,
+      packageVersion: packageVersion || null,
       discoveredSessionLogs: files.length,
       includedSessions: sessions.length,
       excludedByTime,
       excludedByRequestCount,
+      excludedByPackageVersion,
     },
     aggregate,
     sessions: rankedSessions,

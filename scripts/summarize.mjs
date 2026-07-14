@@ -10,6 +10,7 @@ function usage() {
     "  --since <ISO timestamp>       Include sessions started at or after this time",
     "  --until <ISO timestamp>       Include sessions started at or before this time",
     "  --min-requests <count>        Minimum provider requests per session (default: 1)",
+    "  --package-version <version>   Include only logs written by this profiler version",
     "  --top <count>                 Maximum ranked items per section (default: 20)",
     "  --help                        Show this help",
   ].join("\n");
@@ -31,6 +32,7 @@ function parseArguments(args) {
     since: undefined,
     until: undefined,
     minimumProviderRequests: 1,
+    packageVersion: undefined,
     top: 20,
     help: false,
   };
@@ -54,6 +56,11 @@ function parseArguments(args) {
     }
     if (argument === "--min-requests") {
       options.minimumProviderRequests = positiveInteger(argument, args[++index], true);
+      continue;
+    }
+    if (argument === "--package-version") {
+      options.packageVersion = args[++index];
+      if (!options.packageVersion) throw new Error("--package-version requires a value");
       continue;
     }
     if (argument === "--top") {
