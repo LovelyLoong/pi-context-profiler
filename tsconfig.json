@@ -3,6 +3,10 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "baseUrl": ".",
+    "paths": {
+      "@earendil-works/pi-coding-agent": ["types/pi-coding-agent.d.ts"]
+    },
     "strict": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
@@ -12,6 +16,7 @@
   "include": [
     "extensions/**/*.ts",
     "src/**/*.ts",
-    "tests/**/*.ts"
+    "tests/**/*.ts",
+    "types/**/*.d.ts"
   ]
 }

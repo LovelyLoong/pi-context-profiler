@@ -9,13 +9,13 @@ import { hashIdentifier, measureText, measureValue } from "./metrics.ts";
 import {
   profileAgentStart,
   profileAssistantUsage,
-  profileMessages,
-  profileProviderPayload,
   profileToolResult,
+  summarizeMessages,
+  summarizeProviderPayload,
 } from "./profile.ts";
 
-const SCHEMA_VERSION = 1;
-const PACKAGE_VERSION = "0.2.0";
+const SCHEMA_VERSION = 2;
+const PACKAGE_VERSION = "0.3.0";
 
 type ProfilerRecord = Record<string, unknown>;
 type AppendRecord = (filePath: string, record: ProfilerRecord) => void;
@@ -126,7 +126,7 @@ export class ContextProfilerRuntime {
       state.pendingRequestIndex = requestIndex;
       this.write(ctx, "context_snapshot", {
         requestIndex,
-        profile: profileMessages(event.messages),
+        profile: summarizeMessages(event.messages),
       });
     });
     this.pi.on("before_provider_request", (event, ctx) => {
@@ -137,7 +137,7 @@ export class ContextProfilerRuntime {
       state.pendingRequestIndex = undefined;
       this.write(ctx, "provider_request", {
         requestIndex,
-        profile: profileProviderPayload(event.payload),
+        profile: summarizeProviderPayload(event.payload),
       });
     });
     this.pi.on("after_provider_response", (event, ctx) => {

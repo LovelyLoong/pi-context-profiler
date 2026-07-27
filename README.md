@@ -7,7 +7,7 @@ Passive, content-free context attribution for Pi. The extension observes Pi life
 The profiler records:
 
 - exact UTF-8/serialized byte counts;
-- rough byte-based token estimates (`ceil(bytes / 4)`), explicitly not tokenizer-exact;
+- rough byte-based token estimates (`ceil(bytes / 4)`), explicitly not tokenizer-exact; image/Base64 byte estimates must not be interpreted as text tokens;
 - SHA-256 hashes for equality/deduplication checks;
 - message roles, content-part kinds, tool names, model/provider IDs, response status, and numeric usage;
 - context-file basenames and hashes of complete paths, never complete paths.
@@ -28,6 +28,8 @@ Each session log can contain:
 
 The comparison between `tool_result`, `context_snapshot`, and `provider_request` reveals whether output was retained, transformed, or projected before reaching the model.
 
+Since v0.3.0, repeated context and provider records retain aggregate metrics, role counts, and item counts but omit per-message and per-tool-schema arrays. Static construction details remain in `agent_start_profile`, while tool-result content-part metrics remain in `tool_result`. This keeps the observer passive while preventing long-session telemetry from growing approximately quadratically.
+
 ## Storage
 
 Default log location:
@@ -36,7 +38,7 @@ Default log location:
 ~/.pi/agent/context-profiler/<session-id>.ndjson
 ```
 
-`latest.json` points to the most recently updated session log without containing prompt or tool-result content. `PI_CODING_AGENT_DIR` changes the agent directory. `PI_CONTEXT_PROFILER_DIR` can override only the profiler output directory. Logs are local state and are not stored inside this package repository.
+`latest.json` points to the most recently updated session log without containing prompt or tool-result content. `PI_CODING_AGENT_DIR` changes the agent directory. `PI_CONTEXT_PROFILER_DIR` can override only the profiler output directory. Logs are local state and are not stored inside this package repository. The profiler never deletes historical logs automatically; retention and deletion remain explicit operator actions.
 
 ## Installation and activation
 
@@ -58,7 +60,7 @@ The extension registers event observers only. It adds no LLM tool, slash command
 
 ## Summary
 
-Inspect one session while preserving the original detailed report:
+Inspect one session:
 
 ```sh
 npm run summarize -- C:/Users/SkyUser/.pi/agent/context-profiler/<session-id>.ndjson
@@ -72,7 +74,7 @@ npm run summarize -- \
   --since 2026-07-14T00:00:00Z \
   --until 2026-07-17T23:59:59Z \
   --min-requests 1 \
-  --package-version 0.2.0 \
+  --package-version 0.3.0 \
   --top 20
 ```
 

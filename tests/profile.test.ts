@@ -6,6 +6,8 @@ import {
   profileMessages,
   profileProviderPayload,
   profileToolResult,
+  summarizeMessages,
+  summarizeProviderPayload,
 } from "../src/profile.ts";
 
 const SECRET = "sk-secret-value-never-log";
@@ -28,6 +30,32 @@ test("profiles provider payload without retaining content", () => {
   assert.equal((profile.tools as { itemCount: number }).itemCount, 1);
   assert.equal(serialized.includes("memory_search"), true);
   assert.equal(serialized.includes("read"), true);
+});
+
+test("summarizes repeated context without retaining per-item profiles", () => {
+  const messages = Array.from({ length: 1_000 }, (_, index) => ({
+    role: index % 2 === 0 ? "user" : "assistant",
+    content: `${SECRET}-${index}`,
+  }));
+  const context = summarizeMessages(messages);
+  const payload = summarizeProviderPayload({
+    instructions: SECRET,
+    input: messages,
+    tools: [{ type: "function", name: "read", description: SECRET }],
+  }) as Record<string, unknown>;
+  const serializedContext = JSON.stringify(context);
+  const serializedPayload = JSON.stringify(payload);
+
+  assert.equal(context.itemCount, 1_000);
+  assert.equal(context.byRole.user.count, 500);
+  assert.equal(context.byRole.assistant.count, 500);
+  assert.equal("items" in context, false);
+  assert.equal("items" in (payload.input as object), false);
+  assert.equal("items" in (payload.tools as object), false);
+  assert.equal(serializedContext.includes(SECRET), false);
+  assert.equal(serializedPayload.includes(SECRET), false);
+  assert.equal(Buffer.byteLength(serializedContext) < 500, true);
+  assert.equal(Buffer.byteLength(serializedPayload) < 2_000, true);
 });
 
 test("attributes agent messages by role and tool", () => {

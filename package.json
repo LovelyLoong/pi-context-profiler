@@ -1,6 +1,6 @@
 {
   "name": "pi-context-profiler",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Passive, content-free context attribution for Pi provider requests",
   "type": "module",
@@ -42,8 +42,12 @@
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*"
   },
+  "peerDependenciesMeta": {
+    "@earendil-works/pi-coding-agent": {
+      "optional": true
+    }
+  },
   "devDependencies": {
-    "@earendil-works/pi-coding-agent": "0.80.6",
     "@types/node": "^24.0.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"

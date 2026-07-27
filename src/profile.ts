@@ -27,6 +27,12 @@ export interface MessageCollectionProfile {
   byRole: Record<string, { count: number; serializedBytes: number }>;
 }
 
+export interface MessageCollectionSummaryProfile {
+  itemCount: number;
+  metric: ValueMetric;
+  byRole: Record<string, { count: number }>;
+}
+
 function record(value: unknown): UnknownRecord | undefined {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return undefined;
@@ -99,6 +105,24 @@ export function profileMessages(messages: unknown): MessageCollectionProfile {
   };
 }
 
+export function summarizeMessages(messages: unknown): MessageCollectionSummaryProfile {
+  const values = Array.isArray(messages) ? messages : [];
+  const byRole: MessageCollectionSummaryProfile["byRole"] = {};
+
+  for (const message of values) {
+    const role = safeLabel(record(message)?.role, "unknown");
+    const current = byRole[role] ?? { count: 0 };
+    current.count += 1;
+    byRole[role] = current;
+  }
+
+  return {
+    itemCount: values.length,
+    metric: measureValue(messages),
+    byRole,
+  };
+}
+
 function profileTools(tools: unknown): unknown {
   const values = Array.isArray(tools) ? tools : [];
   return {
@@ -133,6 +157,31 @@ export function profileProviderPayload(payload: unknown): unknown {
     input: profileMessages(value.input),
     messages: profileMessages(value.messages),
     tools: profileTools(value.tools),
+    otherKeyCount: Object.keys(other).length,
+    other: measureValue(other),
+  };
+}
+
+export function summarizeProviderPayload(payload: unknown): unknown {
+  const value = record(payload);
+  if (!value) return { metric: measureValue(payload), payloadKind: "non-object" };
+
+  const knownKeys = new Set(["instructions", "system", "input", "messages", "tools"]);
+  const other = Object.fromEntries(
+    Object.entries(value).filter(([key]) => !knownKeys.has(key)),
+  );
+  const tools = Array.isArray(value.tools) ? value.tools : [];
+
+  return {
+    metric: measureValue(payload),
+    instructions: value.instructions === undefined ? undefined : measureValue(value.instructions),
+    system: value.system === undefined ? undefined : measureValue(value.system),
+    input: summarizeMessages(value.input),
+    messages: summarizeMessages(value.messages),
+    tools: {
+      itemCount: tools.length,
+      metric: measureValue(value.tools),
+    },
     otherKeyCount: Object.keys(other).length,
     other: measureValue(other),
   };

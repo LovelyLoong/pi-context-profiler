@@ -6,7 +6,7 @@ This protocol separates passive prevalence measurement from causal optimization 
 
 Collect 8–12 natural sessions that meet every eligibility rule:
 
-- every record in the session was written by `pi-context-profiler` 0.2.0;
+- every record in the session was written by one exact profiler version (`0.3.0` for new experiments);
 - at least one provider request completed;
 - model is `gpt-5.6-sol` with `max` reasoning;
 - the profiler remained passive and memory-search projection remained disabled;
@@ -26,11 +26,11 @@ npm run summarize -- \
   --dir <context-profiler-log-directory> \
   --since <inclusive-ISO-start> \
   --min-requests 1 \
-  --package-version 0.2.0 \
+  --package-version 0.3.0 \
   --top 20
 ```
 
-Use provider usage for exact active/cumulative tokens. Treat byte-based component attribution as a directional estimate, not tokenizer-exact accounting.
+Use provider usage for exact active/cumulative tokens. Treat byte-based text attribution as directional, not tokenizer-exact accounting, and separate image/Base64 bytes from text before ranking tool contributions.
 
 ## Phase 2: isolated memory-search intervention
 

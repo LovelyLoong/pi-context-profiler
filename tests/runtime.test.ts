@@ -160,7 +160,7 @@ test("registers observers only and writes content-free correlated NDJSON", () =>
     const latest = readFileSync(join(root, "latest.json"), "utf8");
     assert.equal(latest.includes(secret), false);
     assert.deepEqual(JSON.parse(latest), {
-      schemaVersion: 1,
+      schemaVersion: 2,
       timestamp: "2026-07-14T00:00:00.000Z",
       event: "assistant_usage",
       sessionId: "session-1",
@@ -182,8 +182,14 @@ test("registers observers only and writes content-free correlated NDJSON", () =>
         "assistant_usage",
       ],
     );
+    assert.equal(records.every((record) => record.schemaVersion === 2), true);
+    assert.equal(records.every((record) => record.packageVersion === "0.3.0"), true);
     assert.equal(records[2].requestIndex, 1);
+    assert.equal(records[2].profile.items, undefined);
+    assert.equal(records[2].profile.byRole.user.count, 1);
     assert.equal(records[3].requestIndex, 1);
+    assert.equal(records[3].profile.input.items, undefined);
+    assert.equal(records[3].profile.tools.items, undefined);
     assert.equal(records[8].requestIndex, 1);
     assert.equal(records[8].usage.activeInputTokens, 182_411);
     assert.equal(records[5].headerCount, 2);
