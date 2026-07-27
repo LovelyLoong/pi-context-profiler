@@ -173,6 +173,10 @@ test("batch summary reports exact usage distributions and rough tool attribution
         profile: { metric: { serializedBytes: 9_999, roughTokenEstimate: 2_500 } },
       }),
     ]);
+    writeFileSync(
+      join(root, "session-corrupt.ndjson"),
+      `${JSON.stringify(record("session-corrupt", "2026-07-15T00:00:00.000Z", "session_start"))}\n\0not-json\n`,
+    );
 
     const summary = runSummary(
       "--dir",
@@ -191,7 +195,8 @@ test("batch summary reports exact usage distributions and rough tool attribution
       until: "2026-07-15T23:59:59.999Z",
       minimumProviderRequests: 1,
       packageVersion: null,
-      discoveredSessionLogs: 4,
+      discoveredSessionLogs: 5,
+      invalidSessionLogs: 1,
       includedSessions: 2,
       excludedByTime: 1,
       excludedByRequestCount: 1,
@@ -205,6 +210,10 @@ test("batch summary reports exact usage distributions and rough tool attribution
       max: 300,
       mean: 250,
     });
+    assert.deepEqual(summary.invalidSessionLogs, [{
+      fileName: "session-corrupt.ndjson",
+      reason: "invalid-ndjson",
+    }]);
     assert.deepEqual(summary.aggregate.packageVersions, {
       "0.1.0": 2,
       "0.2.0": 1,

@@ -3,6 +3,8 @@ import { readdir } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 
+class InvalidNdjsonError extends Error {}
+
 const USAGE_FIELDS = [
   "input",
   "output",
@@ -355,11 +357,15 @@ async function readNdjson(filePath, onRecord) {
     lineNumber += 1;
     const normalized = line.endsWith("\r") ? line.slice(0, -1) : line;
     if (!normalized) return;
+    let record;
     try {
-      onRecord(JSON.parse(normalized));
+      record = JSON.parse(normalized);
     } catch (error) {
-      throw new Error(`Invalid NDJSON in ${basename(filePath)} at line ${lineNumber}: ${error.message}`);
+      throw new InvalidNdjsonError(
+        `Invalid NDJSON in ${basename(filePath)} at line ${lineNumber}: ${error.message}`,
+      );
     }
+    onRecord(record);
   };
 
   for await (const chunk of stream) {
@@ -623,6 +629,7 @@ export async function summarizeDirectory(directory, options = {}) {
     .sort((left, right) => left.localeCompare(right));
 
   const sessions = [];
+  const invalidSessionLogs = [];
   let excludedByTime = 0;
   let excludedByRequestCount = 0;
   let excludedByPackageVersion = 0;
@@ -630,7 +637,16 @@ export async function summarizeDirectory(directory, options = {}) {
     // Preserve every tool bucket until cross-session aggregation is complete. Per-session
     // ranking is trimmed only in the returned report, otherwise a frequently-small tool
     // could disappear before its totals are combined.
-    const summary = await summarizeFile(file, { top: Number.MAX_SAFE_INTEGER });
+    let summary;
+    try {
+      summary = await summarizeFile(file, { top: Number.MAX_SAFE_INTEGER });
+    } catch (error) {
+      if (!(error instanceof InvalidNdjsonError)) throw error;
+      // Do not salvage a prefix from a corrupt session: incomplete final/peak metrics would
+      // bias the cohort. Keep the failure content-free and identify only the log basename.
+      invalidSessionLogs.push({ fileName: basename(file), reason: "invalid-ndjson" });
+      continue;
+    }
     const startedAt = summary.startedAt ? Date.parse(summary.startedAt) : undefined;
     const inRange = startedAt !== undefined
       && (!since || startedAt >= Date.parse(since))
@@ -676,12 +692,14 @@ export async function summarizeDirectory(directory, options = {}) {
       minimumProviderRequests,
       packageVersion: packageVersion || null,
       discoveredSessionLogs: files.length,
+      invalidSessionLogs: invalidSessionLogs.length,
       includedSessions: sessions.length,
       excludedByTime,
       excludedByRequestCount,
       excludedByPackageVersion,
     },
     aggregate,
+    invalidSessionLogs,
     sessions: rankedSessions,
   };
 }
